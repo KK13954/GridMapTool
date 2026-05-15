@@ -8,12 +8,47 @@ let isAuthorized = false;
 let mapsLoaded = false;
 const REQUIRED_PASSWORD = "iml2026";
 
+console.log("Script.js: 初期化開始");
+
 window.initMap = function () {
+  console.log("initMap callback 呼ばれました");
   mapsLoaded = true;
+  console.log("mapsLoaded:", mapsLoaded, "isAuthorized:", isAuthorized);
   if (isAuthorized) {
+    console.log("Google Maps API 初期化開始");
     initializeMap();
+  } else {
+    console.log("isAuthorized が false のため、マップ初期化は保留中です。パスワード入力後に初期化されます。");
   }
 };
+
+window.gm_authFailure = function () {
+  console.error("gm_authFailure: Google Maps API 認証失敗");
+  showMapError(
+    "❌ Google Maps API の認証に失敗しました。\n\nAPIキーが正しいか、制限設定（リファラー）を確認してください。\n\nLive Server を使用中の場合、Google Cloud Console でリファラーに \"http://localhost:*\" を許可してください。"
+  );
+};
+
+window.onMapsApiLoadError = function () {
+  console.error("onMapsApiLoadError: Google Maps API 読み込み失敗");
+  showMapError(
+    "❌ Google Maps API の読み込みに失敗しました。\n\nネットワーク接続や APIキー を確認してください。ブラウザコンソールでエラー詳細を確認してください。"
+  );
+};
+
+function showMapError(message) {
+  console.log("showMapError:", message);
+  const errorOverlay = document.getElementById("map-error");
+  const errorText = document.getElementById("map-error-text");
+  if (errorOverlay && errorText) {
+    errorText.textContent = message;
+    errorText.style.whiteSpace = "pre-wrap";
+    errorOverlay.classList.remove("hidden");
+  } else {
+    console.error("エラーオーバーレイエレメントが見つかりません");
+    console.error(message);
+  }
+}
 
 function initializeMap() {
   if (map) {
@@ -31,7 +66,7 @@ function initializeMap() {
   directionsRenderer = new google.maps.DirectionsRenderer({
     map: map,
     polylineOptions: {
-      strokeColor: "#1d4ed8",
+      strokeColor: "#f0762f",
       strokeOpacity: 0.85,
       strokeWeight: 6,
     },
@@ -40,12 +75,33 @@ function initializeMap() {
 
   autocompleteOrigin = new google.maps.places.Autocomplete(
     document.getElementById("origin-input"),
-    { fields: ["formatted_address", "geometry"] }
+    { 
+      fields: ["formatted_address", "geometry"],
+      types: ["geocode"]
+    }
   );
+  
   autocompleteDestination = new google.maps.places.Autocomplete(
     document.getElementById("destination-input"),
-    { fields: ["formatted_address", "geometry"] }
+    { 
+      fields: ["formatted_address", "geometry"],
+      types: ["geocode"]
+    }
   );
+
+  autocompleteOrigin.addListener("place_changed", () => {
+    const place = autocompleteOrigin.getPlace();
+    if (place && place.formatted_address) {
+      document.getElementById("origin-input").value = place.formatted_address;
+    }
+  });
+
+  autocompleteDestination.addListener("place_changed", () => {
+    const place = autocompleteDestination.getPlace();
+    if (place && place.formatted_address) {
+      document.getElementById("destination-input").value = place.formatted_address;
+    }
+  });
 
   document.getElementById("search-route").addEventListener("click", () => {
     searchRoute();
@@ -127,9 +183,9 @@ function drawGrid() {
         { lat: lat, lng: startLng },
         { lat: lat, lng: endLng },
       ],
-      strokeColor: "#94a3b8",
-      strokeOpacity: 0.45,
-      strokeWeight: 1,
+      strokeColor: "#2563eb",
+      strokeOpacity: 0.7,
+      strokeWeight: 1.8,
       clickable: false,
       map: map,
     });
@@ -142,9 +198,9 @@ function drawGrid() {
         { lat: startLat, lng: lng },
         { lat: endLat, lng: lng },
       ],
-      strokeColor: "#94a3b8",
-      strokeOpacity: 0.45,
-      strokeWeight: 1,
+      strokeColor: "#2563eb",
+      strokeOpacity: 0.7,
+      strokeWeight: 1.8,
       clickable: false,
       map: map,
     });
@@ -159,19 +215,25 @@ function setupAuthentication() {
   const unlock = () => {
     const password = passwordInput.value.trim();
     const errorText = document.getElementById("auth-error");
+    console.log("パスワード入力: 検証中");
 
     if (password === REQUIRED_PASSWORD) {
+      console.log("パスワード認証成功");
       isAuthorized = true;
       document.getElementById("auth-overlay").classList.add("hidden");
       document.querySelector(".app-shell").classList.remove("hidden");
       errorText.textContent = "";
       if (mapsLoaded) {
+        console.log("mapsLoaded が true のため、initializeMap を呼び出します");
         initializeMap();
+      } else {
+        console.log("mapsLoaded が false のため、API の読み込みを待機中です");
       }
       passwordInput.value = "";
       return;
     }
 
+    console.log("パスワード認証失敗");
     errorText.textContent = "パスワードが正しくありません。もう一度入力してください。";
   };
 
@@ -184,5 +246,7 @@ function setupAuthentication() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("DOMContentLoaded: 認証セットアップ開始");
   setupAuthentication();
+  console.log("Google Maps API 読み込み中...");
 });

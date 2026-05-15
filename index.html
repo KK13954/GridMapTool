@@ -19,7 +19,7 @@
 
   <div class="app-shell hidden">
     <aside class="control-panel">
-      <h1>経路検索＆グリッド可視化</h1>
+      <h1>グリッド変換ツール</h1>
       <div class="control-group">
         <label for="origin-input">出発地</label>
         <input id="origin-input" type="text" placeholder="出発地を入力" />
@@ -52,9 +52,18 @@
       <div id="map"></div>
     </main>
   </div>
+
+  <div id="map-error" class="map-error hidden">
+    <div class="map-error-card">
+      <h2>Google マップの読み込みに失敗しました</h2>
+      <p id="map-error-text">APIキー、APIの有効化、またはアクセス制限を確認してください。</p>
+    </div>
+  </div>
+
   <script src="script.js"></script>
   <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-NtJJ41MOLTbqauX5EwzhRcwYUvEc6Bg&libraries=places&callback=initMap">
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-NtJJ41MOLTbqauX5EwzhRcwYUvEc6Bg&libraries=places&callback=initMap"
+    onerror="onMapsApiLoadError()">
   </script>
 </body>
 </html>

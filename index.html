@@ -32,8 +32,10 @@
         <button id="search-route">経路検索</button>
       </div>
       <div class="info-box">
-        <label for="route-info">所要時間 / 距離</label>
+        <label for="route-info">経路情報</label>
+        <label for="route-info">（ルートに沿った所要時間 / ルート距離）</label>
         <textarea id="route-info" readonly placeholder="経路検索後に表示されます"></textarea>
+        <p class="info-note">所要時間・距離は検索で取得した経路に沿った値とする。</p>
       </div>
       <div class="control-group">
         <label for="grid-size">グリッドサイズ</label>
@@ -62,7 +64,7 @@
 
   <script src="script.js"></script>
   <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-NtJJ41MOLTbqauX5EwzhRcwYUvEc6Bg&libraries=places&callback=initMap"
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-NtJJ41MOLTbqauX5EwzhRcwYUvEc6Bg&libraries=places&callback=initMap&v=weekly&language=ja&loading=async"
     onerror="onMapsApiLoadError()">
   </script>
 </body>

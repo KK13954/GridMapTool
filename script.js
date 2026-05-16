@@ -6,6 +6,7 @@ let autocompleteOrigin;
 let autocompleteDestination;
 let geocoder;
 let infoWindow;
+let clickMarker = null;
 let isAuthorized = false;
 let mapsLoaded = false;
 const REQUIRED_PASSWORD = "iml2026";
@@ -32,7 +33,7 @@ window.initMap = function () {
 window.gm_authFailure = function () {
   console.error("gm_authFailure: Google Maps API 認証失敗");
   showMapError(
-    "❌ Google Maps API の認証に失敗しました。\n\nAPIキーが正しいか、制限設定（リファラー）を確認してください。\n\nLive Server を使用中の場合、Google Cloud Console でリファラーに \"http://localhost:*\" を許可してください。"
+    "❌ Google Maps API の認証に失敗しました。\n\nAPIキーが正しいか、制限設定（リファラー）を確認してください。\n\nGoogle Cloud Console で以下を有効にしてください：Maps JavaScript API、Places API (New)、Routes API。\n\nLive Server を使用中の場合、\"http://localhost:*\" を許可してください。"
   );
 };
 
@@ -110,35 +111,41 @@ function setupAutocomplete() {
     return;
   }
 
-  autocompleteOrigin = new google.maps.places.Autocomplete(
-    document.getElementById("origin-input"),
-    {
-      fields: ["formatted_address", "geometry", "name"],
-      componentRestrictions: { country: "jp" },
-    }
-  );
+  const originInput = document.getElementById("origin-input");
+  const destinationInput = document.getElementById("destination-input");
 
-  autocompleteDestination = new google.maps.places.Autocomplete(
-    document.getElementById("destination-input"),
-    {
-      fields: ["formatted_address", "geometry", "name"],
-      componentRestrictions: { country: "jp" },
-    }
-  );
+  autocompleteOrigin = createAutocompleteElement(originInput);
+  autocompleteDestination = createAutocompleteElement(destinationInput);
 
   autocompleteOrigin.addListener("place_changed", () => {
     const place = autocompleteOrigin.getPlace();
     if (place && place.formatted_address) {
-      document.getElementById("origin-input").value = place.formatted_address;
+      originInput.value = place.formatted_address;
     }
   });
 
   autocompleteDestination.addListener("place_changed", () => {
     const place = autocompleteDestination.getPlace();
     if (place && place.formatted_address) {
-      document.getElementById("destination-input").value = place.formatted_address;
+      destinationInput.value = place.formatted_address;
     }
   });
+}
+
+function createAutocompleteElement(inputElement) {
+  const options = {
+    fields: ["formatted_address", "geometry", "name"],
+    componentRestrictions: { country: "jp" },
+  };
+
+  if (google.maps.places.PlaceAutocompleteElement) {
+    return new google.maps.places.PlaceAutocompleteElement({
+      input: inputElement,
+      ...options,
+    });
+  }
+
+  return new google.maps.places.Autocomplete(inputElement, options);
 }
 
 function placeMarkerAndShowInfo(latLng) {
@@ -146,7 +153,11 @@ function placeMarkerAndShowInfo(latLng) {
     return;
   }
 
-  const marker = new google.maps.Marker({
+  if (clickMarker) {
+    clickMarker.setMap(null);
+  }
+
+  clickMarker = new google.maps.Marker({
     position: latLng,
     map: map,
   });
@@ -167,11 +178,11 @@ function placeMarkerAndShowInfo(latLng) {
         content.appendChild(address);
       }
       infoWindow.setContent(content);
-      infoWindow.open(map, marker);
+      infoWindow.open(map, clickMarker);
     });
   } else {
     infoWindow.setContent(content);
-    infoWindow.open(map, marker);
+    infoWindow.open(map, clickMarker);
   }
 }
 function searchRoute() {
@@ -194,7 +205,7 @@ function searchRoute() {
       if (status === google.maps.DirectionsStatus.OK) {
         directionsRenderer.setDirections(result);
         const route = result.routes[0].legs[0];
-        infoBox.value = `所要時間: ${route.duration.text}\n距離: ${route.distance.text}`;
+        infoBox.value = `この経路に沿った所要時間: ${route.duration.text}\nこの経路に沿った距離: ${route.distance.text}`;
         map.fitBounds(result.routes[0].bounds);
       } else {
         infoBox.value = `経路検索に失敗しました: ${status}`;

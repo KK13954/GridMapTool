@@ -13,6 +13,10 @@ console.log("Script.js: 初期化開始");
 window.initMap = function () {
   console.log("initMap callback 呼ばれました");
   mapsLoaded = true;
+  const mapError = document.getElementById("map-error");
+  if (mapError) {
+    mapError.classList.add("hidden");
+  }
   console.log("mapsLoaded:", mapsLoaded, "isAuthorized:", isAuthorized);
   if (isAuthorized) {
     console.log("Google Maps API 初期化開始");
@@ -76,16 +80,14 @@ function initializeMap() {
   autocompleteOrigin = new google.maps.places.Autocomplete(
     document.getElementById("origin-input"),
     { 
-      fields: ["formatted_address", "geometry"],
-      types: ["geocode"]
+      fields: ["formatted_address", "geometry"]
     }
   );
   
   autocompleteDestination = new google.maps.places.Autocomplete(
     document.getElementById("destination-input"),
     { 
-      fields: ["formatted_address", "geometry"],
-      types: ["geocode"]
+      fields: ["formatted_address", "geometry"]
     }
   );
 
@@ -223,6 +225,10 @@ function setupAuthentication() {
       document.getElementById("auth-overlay").classList.add("hidden");
       document.querySelector(".app-shell").classList.remove("hidden");
       errorText.textContent = "";
+      const mapError = document.getElementById("map-error");
+      if (mapError) {
+        mapError.classList.add("hidden");
+      }
       if (mapsLoaded) {
         console.log("mapsLoaded が true のため、initializeMap を呼び出します");
         initializeMap();

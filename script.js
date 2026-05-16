@@ -4,6 +4,8 @@ let directionsRenderer;
 let gridLines = [];
 let autocompleteOrigin;
 let autocompleteDestination;
+let geocoder;
+let infoWindow;
 let isAuthorized = false;
 let mapsLoaded = false;
 const REQUIRED_PASSWORD = "iml2026";
@@ -17,6 +19,7 @@ window.initMap = function () {
   if (mapError) {
     mapError.classList.add("hidden");
   }
+  setupAutocomplete();
   console.log("mapsLoaded:", mapsLoaded, "isAuthorized:", isAuthorized);
   if (isAuthorized) {
     console.log("Google Maps API 初期化開始");
@@ -77,17 +80,49 @@ function initializeMap() {
     suppressMarkers: false,
   });
 
+  geocoder = new google.maps.Geocoder();
+  infoWindow = new google.maps.InfoWindow();
+
+  map.addListener("click", (event) => {
+    placeMarkerAndShowInfo(event.latLng);
+  });
+
+  document.getElementById("search-route").addEventListener("click", () => {
+    searchRoute();
+  });
+
+  document.getElementById("grid-size").addEventListener("change", () => {
+    drawGrid();
+  });
+
+  map.addListener("idle", () => {
+    drawGrid();
+  });
+}
+
+function setupAutocomplete() {
+  if (!google || !google.maps || !google.maps.places) {
+    console.warn("Places ライブラリが利用できません。Autocomplete を初期化できません。");
+    return;
+  }
+
+  if (autocompleteOrigin && autocompleteDestination) {
+    return;
+  }
+
   autocompleteOrigin = new google.maps.places.Autocomplete(
     document.getElementById("origin-input"),
-    { 
-      fields: ["formatted_address", "geometry"]
+    {
+      fields: ["formatted_address", "geometry", "name"],
+      componentRestrictions: { country: "jp" },
     }
   );
-  
+
   autocompleteDestination = new google.maps.places.Autocomplete(
     document.getElementById("destination-input"),
-    { 
-      fields: ["formatted_address", "geometry"]
+    {
+      fields: ["formatted_address", "geometry", "name"],
+      componentRestrictions: { country: "jp" },
     }
   );
 
@@ -104,20 +139,41 @@ function initializeMap() {
       document.getElementById("destination-input").value = place.formatted_address;
     }
   });
-
-  document.getElementById("search-route").addEventListener("click", () => {
-    searchRoute();
-  });
-
-  document.getElementById("grid-size").addEventListener("change", () => {
-    drawGrid();
-  });
-
-  map.addListener("idle", () => {
-    drawGrid();
-  });
 }
 
+function placeMarkerAndShowInfo(latLng) {
+  if (!map) {
+    return;
+  }
+
+  const marker = new google.maps.Marker({
+    position: latLng,
+    map: map,
+  });
+
+  const content = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = "選択した地点";
+  const coords = document.createElement("p");
+  coords.textContent = `緯度: ${latLng.lat().toFixed(6)}, 経度: ${latLng.lng().toFixed(6)}`;
+  content.appendChild(title);
+  content.appendChild(coords);
+
+  if (geocoder) {
+    geocoder.geocode({ location: latLng }, (results, status) => {
+      if (status === google.maps.GeocoderStatus.OK && results[0]) {
+        const address = document.createElement("p");
+        address.textContent = results[0].formatted_address;
+        content.appendChild(address);
+      }
+      infoWindow.setContent(content);
+      infoWindow.open(map, marker);
+    });
+  } else {
+    infoWindow.setContent(content);
+    infoWindow.open(map, marker);
+  }
+}
 function searchRoute() {
   const origin = document.getElementById("origin-input").value.trim();
   const destination = document.getElementById("destination-input").value.trim();
